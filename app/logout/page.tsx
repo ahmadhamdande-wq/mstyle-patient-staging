@@ -1,0 +1,1 @@
+export default function Logout(){return <main className="mstyle-login"><form action="/api/auth/logout" method="post"><h1>Sign out of MStyle?</h1><p>Save any pending clinical changes first.</p><button>Sign out</button><a href="/">Return to clinic</a></form></main>}

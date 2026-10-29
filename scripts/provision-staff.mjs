@@ -1,0 +1,7 @@
+import {webcrypto,randomUUID} from 'node:crypto';import {createInterface} from 'node:readline/promises';import {stdin,stdout} from 'node:process';import {writeFile} from 'node:fs/promises';
+const args=process.argv.slice(2);const owner=args[0],username=args[1]?.toLowerCase(),role=args[2]||'doctor';
+if(!owner||!username||!['doctor','admin','nurse','reception'].includes(role)){console.error('Usage: node scripts/provision-staff.mjs CLINIC_OWNER_ID USERNAME [role]');process.exit(1);}
+console.log('Set MSTYLE_STAFF_PASSWORD in your shell using a hidden prompt. Do not paste it in chat.');
+const password=process.env.MSTYLE_STAFF_PASSWORD; if(!password||password.length<14||password.length>256)throw Error('Password must be 14–256 characters');
+const salt=Buffer.from(webcrypto.getRandomValues(new Uint8Array(32))).toString('hex');const key=await webcrypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);const hash=Buffer.from(await webcrypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:new TextEncoder().encode(salt),iterations:100000},key,256)).toString('hex');const q=s=>"'"+s.replaceAll("'","''")+"'";
+await writeFile('staff-bootstrap.sql',`INSERT INTO clinic_staff(id,owner,username,password_hash,salt,role,active,created) VALUES(${[randomUUID(),owner,username,hash,salt,role].map(q).join(',')},1,${q(new Date().toISOString())});\n`,{mode:0o600});console.log('Created staff-bootstrap.sql with a salted password hash. Apply to your D1 database, then delete the file.');

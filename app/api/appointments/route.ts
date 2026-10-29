@@ -1,0 +1,4 @@
+import {getChatGPTUser} from '../../chatgpt-auth';
+import {database} from '../../../db/raw';
+import {appointmentCore} from '../../../lib/appointments';
+export async function GET(){const user=await getChatGPTUser();if(!user)return Response.json({error:'Sign in required'},{status:401});try{const result=await database().prepare('SELECT id,name,dob,husband,snapshot FROM patients WHERE owner=?').bind(user.userId).all();const core=appointmentCore();const rows=(result.results as any[]).flatMap(patient=>{let values={};try{values=JSON.parse(patient.snapshot);}catch{return [];}return core.collect(values,patient);});return Response.json(rows,{headers:{'Cache-Control':'no-store'}});}catch{return Response.json({error:'Clinic appointments unavailable. Retry before confirming a booking.'},{status:503});}}

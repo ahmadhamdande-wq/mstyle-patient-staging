@@ -1,0 +1,7 @@
+{
+  "base_version": 66,
+  "base_commit": "6c29b6475d46da608281d901886243a189a3e8db",
+  "stage": "independent-foundation-tested-locally",
+  "deployed_to_owner_account": false,
+  "contains_patient_data": false
+}

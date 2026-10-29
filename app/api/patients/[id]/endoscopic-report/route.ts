@@ -1,0 +1,8 @@
+import {getChatGPTUser} from '../../../../chatgpt-auth';
+import {record,decodeSnapshot,validId} from '../../../../../lib/records';
+export async function GET(req:Request,{params}:any){
+ const user=await getChatGPTUser();if(!user)return Response.json({error:'Sign in required'},{status:401});const {id}=await params;if(!validId(id))return Response.json({error:'Not found'},{status:404});
+ try{const row=await record(id,user.userId);if(!row)return Response.json({error:'Not found'},{status:404});const values=await decodeSnapshot(row.snapshot,user.userId,id),query=new URL(req.url).searchParams,care=JSON.parse(values['hamdan-linked-care-v1']||'[]'),procedure=care.find((p:any)=>p.type==='procedure'&&p.id===query.get('procedure')),file=procedure?.endoscopicReport?.files?.find((f:any)=>f.id===query.get('attachment'));if(!file||file.mime!=='application/pdf'||typeof file.data!=='string'||!file.data.startsWith('data:application/pdf;base64,'))return Response.json({error:'Report not found'},{status:404});
+ const bytes=Uint8Array.from(atob(file.data.split(',')[1]),c=>c.charCodeAt(0));if(bytes.length>1024*1024||new TextDecoder().decode(bytes.slice(0,5))!=='%PDF-')return Response.json({error:'Invalid report'},{status:400});const name=String(file.name||'endoscopic-report.pdf').replace(/[^a-zA-Z0-9_.-]/g,'_').slice(0,120);return new Response(bytes,{headers:{'Content-Type':'application/pdf','Content-Disposition':'inline; filename="'+name+'"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+ }catch{return Response.json({error:'Report unavailable. Please retry.'},{status:503});}
+}
