@@ -1,0 +1,32 @@
+name: Create initial doctor login
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mstyle-owner-deployment
+  cancel-in-progress: false
+jobs:
+  create-doctor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate initial doctor account
+        env:
+          MSTYLE_STAFF_PASSWORD: ${{ secrets.MSTYLE_DOCTOR_PASSWORD }}
+        run: node scripts/provision-staff.mjs mstyle-hamdan dr.ahmad doctor
+      - name: Create doctor in your clinic database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b3a28b3e18d5236d09a9dc4f87da8a27
+        run: pnpm exec wrangler d1 execute DB --remote --file staff-bootstrap.sql
+      - name: Remove temporary password hash file
+        if: always()
+        run: rm -f staff-bootstrap.sql
