@@ -9,7 +9,7 @@
     {
       "binding": "DB",
       "database_name": "mstyle-clinic-db",
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      "database_id": "9de4e8ca-d4bd-4d51-bf1a-a12a75573813",
       "migrations_dir": "drizzle"
     }
   ],
@@ -18,5 +18,6 @@
       "binding": "BUCKET",
       "bucket_name": "mstyle-clinic-files"
     }
-  ]
+  ],
+  "account_id": "b3a28b3e18d5236d09a9dc4f87da8a27"
 }
