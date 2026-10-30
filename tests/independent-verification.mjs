@@ -27,7 +27,10 @@ res=await callTarget('/api/patients/'+id,'GET',undefined,restore);body=await res
 res=await call('/api/patients/'+id+'/summary','GET',undefined,doctor);assert.equal(res.status,200);assert.match(await res.text(),/Fictional clinical note/);
 res=await call('/record/'+id+'/index.html','GET',undefined,doctor);assert.equal(res.status,200,await res.clone().text());
 assert.equal(res.headers.get('Cache-Control'),'no-store');
-const clinicalHTML=await res.text();const staticMatch=clinicalHTML.match(/src=["']([^"']+\.js\?v=[a-z0-9]+)["']/);assert(staticMatch,'Clinical scripts must have content versions');const assetURL=new URL(staticMatch[1],'https://clinic.example/record/'+id+'/index.html');const assetPath=assetURL.pathname+assetURL.search;
+const clinicalHTML=await res.text();assert.match(clinicalHTML,/patient-file-face\.js\?v=/);assert.match(clinicalHTML,/patient-file-face\.css\?v=/);
+for(const field of ['patientName','dob','marriageDate','marriageDuration','contact-mobile']){if(field==='contact-mobile')continue;assert(clinicalHTML.includes('id="'+field+'"'),'Original field retained: '+field);}
+const afterLayout=await call('/api/patients/'+id,'GET',undefined,doctor);assert.deepEqual((await afterLayout.json()).values,values,'Rendering the new layout must not modify saved patient data');
+const staticMatch=clinicalHTML.match(/src=["']([^"']+\.js\?v=[a-z0-9]+)["']/);assert(staticMatch,'Clinical scripts must have content versions');const assetURL=new URL(staticMatch[1],'https://clinic.example/record/'+id+'/index.html');const assetPath=assetURL.pathname+assetURL.search;
 let assetResponse=await call(assetPath,'GET',undefined,doctor);assert.equal(assetResponse.status,200);assert.match(assetResponse.headers.get('Cache-Control'),/private, max-age=86400/);assert(assetResponse.headers.get('Vary').split(',').map(x=>x.trim()).includes('Cookie'));
 assetResponse=await call(assetURL.pathname+'?v=stale','GET',undefined,doctor);assert.equal(assetResponse.headers.get('Cache-Control'),'no-store');
 assert.notEqual((await call(assetPath)).status,200,'Versioned asset endpoint still checks identity');

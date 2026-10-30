@@ -20,6 +20,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm build
+      - run: node tests/patient-file-face.mjs
       - run: node tests/ivf-treatment.mjs
       - run: pnpm test:independent
   deploy:
