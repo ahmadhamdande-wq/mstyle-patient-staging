@@ -9,3 +9,10 @@ for(const file of ['index.html','husband.html','anc.html','oi.html','oi-simple.h
 assert.match(a['patient-file-face.js'],/b.onclick=\(\)=>g.MStyle.navigate\(file\)/,'Sheet switching must retain existing guarded navigation');
 assert.match(a['patient-file-face.js'],/if\(isFile&&typeof render/,'Clinical chart render functions stay untouched');
 console.log('PASS shared sheet coverage, guarded switching and clinical render preservation.');
+new vm.Script(a['compact-clinical.js']);
+assert(!/localStorage\.(setItem|removeItem|clear)/.test(a['compact-clinical.js']));
+assert.match(a['compact-clinical.js'],/Go to patient file/);
+assert.match(a['compact-clinical.js'],/compactPrevious/);
+assert.match(a['compact-clinical.js'],/g\.IVFCompact=\{dock:side\}/);
+assert(!/medicine.?shortcut/i.test(a['compact-clinical.js']),'Patient overview adds no medicine shortcut box');
+console.log('PASS compact layout syntax, navigation and layout-only storage boundary.');
