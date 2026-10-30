@@ -24,6 +24,7 @@ jobs:
       - run: node tests/ivf-treatment.mjs
       - run: node tests/ivf-cycle-delete.mjs
       - run: node tests/embryology-ui.mjs
+      - run: node tests/cryo-availability.mjs
       - run: pnpm test:independent
   deploy:
     needs: verify
