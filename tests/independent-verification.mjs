@@ -26,6 +26,11 @@ res=await callTarget('/api/restore','POST',{envelope,password,confirm:'RESTORE T
 res=await callTarget('/api/patients/'+id,'GET',undefined,restore);body=await res.json();assert.equal(JSON.parse(body.values.test).image,'data:image/png;base64,aGVsbG8=');assert.equal((await callTarget('/api/restore','POST',{envelope,password,confirm:'RESTORE TO EMPTY CLINIC'},restore)).status,400);
 res=await call('/api/patients/'+id+'/summary','GET',undefined,doctor);assert.equal(res.status,200);assert.match(await res.text(),/Fictional clinical note/);
 res=await call('/record/'+id+'/index.html','GET',undefined,doctor);assert.equal(res.status,200,await res.clone().text());
+assert.equal(res.headers.get('Cache-Control'),'no-store');
+const clinicalHTML=await res.text();const staticMatch=clinicalHTML.match(/src=["']([^"']+\.js\?v=[a-z0-9]+)["']/);assert(staticMatch,'Clinical scripts must have content versions');const assetURL=new URL(staticMatch[1],'https://clinic.example/record/'+id+'/index.html');const assetPath=assetURL.pathname+assetURL.search;
+let assetResponse=await call(assetPath,'GET',undefined,doctor);assert.equal(assetResponse.status,200);assert.match(assetResponse.headers.get('Cache-Control'),/private, max-age=86400/);assert(assetResponse.headers.get('Vary').split(',').map(x=>x.trim()).includes('Cookie'));
+assetResponse=await call(assetURL.pathname+'?v=stale','GET',undefined,doctor);assert.equal(assetResponse.headers.get('Cache-Control'),'no-store');
+assert.notEqual((await call(assetPath)).status,200,'Versioned asset endpoint still checks identity');
 assert.equal((await call('/api/auth/logout','POST',{},doctor)).status,303);assert.equal((await call('/api/patients','GET',undefined,doctor)).status,401);
 console.log('PASS: independent login, spoof rejection, secure cookie, persistent saving, conflict protection, tenant isolation, restricted roles, CSRF rejection, encrypted backup, wrong-password rejection, restore plus binary attachment round-trip, nonempty restore refusal, offline export, clinical page and logout.');
 }finally{await mf.dispose();await target.dispose();}

@@ -12,5 +12,5 @@ export default {async fetch(request:Request,env:Cloudflare.Env,ctx:ExecutionCont
   if(user.role==='reception'&&!(path==='/api/patients'&&['GET','POST'].includes(request.method)))return Response.json({error:'Clinical access is restricted'},{status:403});
  }
  const response=await handler.fetch(request,env,ctx);const out=new Response(response.body,response);
- out.headers.set('Cache-Control','no-store');out.headers.set('X-Content-Type-Options','nosniff');out.headers.set('Referrer-Policy','same-origin');out.headers.set('X-Frame-Options','SAMEORIGIN');out.headers.set('Strict-Transport-Security','max-age=31536000');return out;
+ const versionedStatic=['GET','HEAD'].includes(request.method)&&/^\/record\/[a-f0-9-]{36}\/[^/]+\.(?:js|css)$/.test(path)&&url.searchParams.has('v')&&response.status===200&&response.headers.get('Cache-Control')==='private, max-age=86400, immutable';if(!versionedStatic)out.headers.set('Cache-Control','no-store');out.headers.set('X-Content-Type-Options','nosniff');out.headers.set('Referrer-Policy','same-origin');out.headers.set('X-Frame-Options','SAMEORIGIN');out.headers.set('Strict-Transport-Security','max-age=31536000');return out;
 }};
