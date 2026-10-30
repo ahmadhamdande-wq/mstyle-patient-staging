@@ -9,8 +9,29 @@ ctx.IVFTreatment.open('Gonadotropin','2026-10-07');assert.match(D('ivtRows').inn
 D('ivfTreatmentEditor').listeners.input({target:{dataset:{i:'0',k:'days'},value:'3',closest:()=>null}});await D('ivtSave').onclick();assert.equal(saves,1);assert.equal(ctx.episode.oiSchedules.at(-1).start,'2026-10-07');assert.equal(ctx.episode.oiSchedules.at(-1).end,'2026-10-09');assert.equal(D('ivfTreatmentEditor').hidden,true);assert.equal(ctx.episode.oiSchedules[0].end,'2026-10-06');
 ctx.IVFTreatment.open('Down regulation','2026-10-07');assert.match(D('ivtRows').innerHTML,/data-k="days"[^>]*value="4"/);D('ivtClose').onclick();
 accepted=false;ctx.IVFTreatment.open('Gonadotropin','2026-10-08');assert.equal(D('ivfTreatmentEditor').hidden,true);accepted=true;
+
+for(const date of ['2026-10-02','2026-10-04','2026-10-06']){
+ ctx.episode.oiSchedules=[{id:'g',category:'Gonadotropin',drug:'Gonal-F',dose:'225',unit:'IU',route:'SC',start:'2026-10-02',end:'2026-10-06',days:5},{id:'d',category:'Down regulation',drug:'Cetrotide',dose:'0.25',unit:'mg',route:'SC',start:'2026-10-02',end:'2026-10-07',days:6}];
+ ctx.IVFTreatment.open('Gonadotropin',date);
+ D('ivfTreatmentEditor').listeners.click({target:{closest:()=>({dataset:{remove:'0'}})}});
+ await D('ivtSave').onclick();
+ assert.equal(ctx.OIScheduleCore.onDate(ctx.episode.oiSchedules,date).filter(r=>r.category==='Gonadotropin').length,0);
+ for(const other of ['2026-10-02','2026-10-03','2026-10-04','2026-10-05','2026-10-06'].filter(d=>d!==date))assert.equal(ctx.OIScheduleCore.onDate(ctx.episode.oiSchedules,other).filter(r=>r.category==='Gonadotropin').length,1);
+ assert.equal(ctx.OIScheduleCore.onDate(ctx.episode.oiSchedules,date).filter(r=>r.category==='Down regulation').length,1);
+ assert(ctx.episode.oiSchedules.some(r=>r.cancelled&&r.removedDate===date));
+ assert.equal(D('ivfTreatmentEditor').hidden,true);
+}
+ctx.episode.oiSchedules=[{id:'only',category:'Gonadotropin',drug:'Gonal-F',dose:'225',unit:'IU',route:'SC',start:'2026-10-02',end:'2026-10-02',days:1}];
+ctx.IVFTreatment.open('Gonadotropin','2026-10-02');D('ivfTreatmentEditor').listeners.click({target:{closest:()=>({dataset:{remove:'0'}})}});await D('ivtSave').onclick();assert.equal(ctx.episode.oiSchedules.filter(r=>!r.cancelled).length,0);
+console.log('PASS deleting the final medicine saves; first/middle/last day deletion preserves adjacent doses, other category and correction history.');
+
 await D('ivtSubmit').onclick();assert.equal(ctx.episode.status,'Completed');const n=saves;assert.equal(await ctx.save({injectionsOnly:true}),false);assert.equal(saves,n);accepted=false;assert.equal(ctx.editOI(),false);assert.equal(ctx.locked,true);accepted=true;ctx.editOI();assert.equal(D('cycleStatus').value,'Active');
 console.log('PASS continuation after last prescribed day, end-CD range, saved collapse, extra down-regulation day, edit confirmation and completed-cycle lock.');
 
 ctx.episode.status='Active';ctx.locked=true;ctx.triggerIds=[];ctx.O.opu=(at,h)=>at&&Number(h)>0?'2026-10-12T08:00':'';ctx.OIPaper.closeDay=()=>{};ctx.OITriggerSchedule={open(){ctx.locked=false;D('chartDayDialog').open=true;D('triggerDate').value='2026-10-10';D('triggerMedicine').value='';D('triggerDose').value='';D('opuHours').value='36';},syncTrigger(){D('triggerAt').value=D('triggerDate').value+'T'+D('triggerTime').value;}};
 vm.runInContext(a['ivf-trigger-inline.js'],ctx);ctx.IVFTriggerInline.open('2026-10-10');assert.equal(D('ivfTriggerInline').hidden,false);const triggerBox=D('ivfTriggerInline');function input(i,k,value){triggerBox.listeners.input({target:{dataset:{i:String(i),k},value}});}input(0,'drug','Choriomon');input(0,'dose','5000 IU IM');D('ivtiAdd').onclick();input(1,'drug','Decapeptyl');input(1,'dose','0.2 mg SC');D('ivtiTime').value='20:00';await D('ivtiSave').onclick();assert.equal(D('triggerMedicine').value,'Choriomon + Decapeptyl');assert.equal(JSON.parse(D('triggerInjectionJSON').value).length,2);assert.equal(D('ivfTriggerInline').hidden,true);assert.equal(D('triggerAt').value,'2026-10-10T20:00');console.log('PASS two trigger injections preserved with shared trigger time and collapsed editor.');
+
+ctx.episode.oiTrigger={triggerMedicine:'Choriomon + Decapeptyl'};ctx.visit.fields={clinician:'Doctor'};ctx.locked=true;ctx.IVFTriggerInline.open('2026-10-10');
+triggerBox.listeners.click({target:{closest:()=>({dataset:{remove:'1'}})}});await D('ivtiSave').onclick();assert.equal(JSON.parse(D('triggerInjectionJSON').value).length,1);
+ctx.locked=true;ctx.IVFTriggerInline.open('2026-10-10');triggerBox.listeners.click({target:{closest:()=>({dataset:{remove:'0'}})}});await D('ivtiSave').onclick();assert.equal(D('triggerMedicine').value,'');assert.equal(JSON.parse(D('triggerInjectionJSON').value).length,0);assert.equal(D('opuConfirmed').value,'');assert.equal(D('ivfTriggerInline').hidden,true);
+console.log('PASS one or all trigger injections can be removed and the unperformed OPU plan is cleared.');
