@@ -26,3 +26,8 @@ const layoutContext={location:{pathname:'/record/fictional/oi.html'},document:{r
 vm.runInNewContext(a['compact-clinical.js'],layoutContext);
 assert.equal(domNodes.get('oiDayPanel').parentNode,domNodes.get('chartDayDialog'),'Compact installation must not empty the monitoring modal');
 console.log('PASS compact installation leaves the check-up fields inside the existing dialog.');
+assert.equal(core.complaintSummary({complaint:'Primary infertility',infertilityDuration:'3 years'}),'CC: Primary infertility · 3 years');
+assert.equal(core.complaintSummary({complaint:'ANC',infertilityDuration:'3 years'}),'CC: ANC');
+assert.equal(core.complaintSummary({complaint:'Not recorded'}),'');
+assert.equal(core.complaintSummary({complaint:'Infertility'}),'CC: Infertility');
+console.log('PASS recorded chief complaint and infertility duration without invented values or unrelated duration.');
