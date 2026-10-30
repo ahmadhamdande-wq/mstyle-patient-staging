@@ -26,6 +26,7 @@ jobs:
       - run: node tests/embryology-ui.mjs
       - run: node tests/cryo-availability.mjs
       - run: node tests/transfer-outcomes.mjs
+      - run: node tests/post-opu-followup.mjs
       - run: pnpm test:independent
   deploy:
     needs: verify
