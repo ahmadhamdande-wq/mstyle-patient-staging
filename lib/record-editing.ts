@@ -12,7 +12,7 @@ export function installRecordEditing(initialValues:Record<string,string>, initia
   if(file==='care.html'){const path=query.get('path')||'cycle',visits=parse('hamdan-couple-encounters-v1')||[],visit=visits.find((v:any)=>v.id===query.get('encounter')),linked=query.get('record')||visit?.careLinks?.[path],care=parse('hamdan-linked-care-v1')||[];initiallySaved=care.some((e:any)=>e.type===path&&e.patientId===visit?.patientId&&(path==='procedure'?e.id===linked&&e.fields?.procedureName===(query.get('procedure')||'Other procedure'):e.id===linked||!['Ended','Completed','Cancelled'].includes(e.status)));}
   if(file==='anc.html'){const id=query.get('encounter');initiallySaved=(parse('hamdan-linked-care-v1')||[]).some((e:any)=>e.type==='anc'&&(e.ancRecords?.[id||'']||e.status==='Ended'&&e.encounterIds?.includes(id)));}
  }
- let locked=initiallySaved,pendingLock=false;const sectionRoots=new Set<Element>();
+ let locked=initiallySaved,pendingLock=false,lastEditState='';const sectionRoots=new Set<Element>();
  const excluded=new Set(['medicinePicker','rxSavedMedicine','person','historyPicker','visitFilter','episodePicker','encounter','pregnancy','pathway','subtype']);
  const managed=new Map<any,boolean>();
  const message=document.createElement('span');message.id='record-edit-status';message.setAttribute('role','status');
@@ -21,7 +21,7 @@ export function installRecordEditing(initialValues:Record<string,string>, initia
  function update(){
   if(locked){document.querySelectorAll('input,select,textarea').forEach((el:any)=>{if(eligible(el)&&!Array.from(sectionRoots).some(root=>root.contains(el))&&!managed.has(el)){managed.set(el,el.disabled);el.disabled=true;el.dataset.recordLocked='true';}});}
   else{for(const [el,disabled]of managed){el.disabled=disabled;delete el.dataset.recordLocked;}managed.clear();}
-  const text=locked?(sectionRoots.size?'Editing section · save this box':'Saved · read only'):'Editing · save changes when finished';if(message.textContent!==text)message.textContent=text;edit.hidden=false;(window as any).importantFindings?.syncMode();
+  const text=locked?(sectionRoots.size?'Editing section · save this box':'Saved · read only'):'Editing · save changes when finished';if(message.textContent!==text)message.textContent=text;edit.hidden=false;(window as any).importantFindings?.syncMode();const state=String(locked)+':'+sectionRoots.size;if(state!==lastEditState){lastEditState=state;document.dispatchEvent(new Event('clinic-edit-state'));}
  }
  function unlock(){sectionRoots.clear();locked=false;pendingLock=false;update();}
  function unlockSection(root:Element){if(!root)return;if(!locked)return;sectionRoots.add(root);for(const [el,disabled]of managed)if(root.contains(el)){el.disabled=disabled;delete el.dataset.recordLocked;managed.delete(el);}update();}
@@ -34,7 +34,7 @@ export function installRecordEditing(initialValues:Record<string,string>, initia
  document.addEventListener('click',e=>{
   const button=(e.target as Element)?.closest('button');if(!button||button.closest('#mstyleConsultationDialog')||button.closest('#cloud-bar')||button.closest('#clinicSearch')||button.closest('#clinicAppointments')||button.closest('.medication-catalog-settings')||button.closest('.ivf-cycle-history')||button.closest('.ivf-history-confirm')||button.closest('#nsAIImport')||button.closest('#newStyleTreatment'))return;
   const text=(button.textContent||'').trim(),action=button.getAttribute('onclick')||'';
-  if(/^edit\b/i.test(text)||/^Describe\b/i.test(text)){const box=button.closest('.anc-two-box-card');if(box){unlockSection(box);return;}unlock();return;}
+  if(/\bedit\b/i.test(text)||/^Describe\b/i.test(text)){const box=button.closest('.anc-two-box-card');if(box){unlockSection(box);return;}unlock();return;}
   const templateAction=/ClinicPrescriptions\.(?:newTemplate|saveTemplate(?:Edits)?|deleteTemplate|appendPreviewRow|removeTemplateRow)\(/.test(action);
   if(locked&&!Array.from(sectionRoots).some(root=>root.contains(button))&&!templateAction&&(/remove important flag/i.test(button.getAttribute('aria-label')||'')||/^(?:\+?\s*Add|Remove|Delete|Approve|Finalize|Send)\b/i.test(text)||/^save|^apply/i.test(text))){e.preventDefault();e.stopImmediatePropagation();message.textContent='Choose Edit before changing saved data.';edit.focus();return;}
   if(!locked&&/^(?:Save|Apply)\b/i.test(text)&&!action.includes('saveMedicineName')&&!action.includes('saveTemplate')){const before=(window as any).clinicRecordVersion||0;setTimeout(()=>{if(((window as any).clinicRecordVersion||0)!==before)controller.prepareSave();},0);}
