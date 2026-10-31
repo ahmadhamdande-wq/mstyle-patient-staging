@@ -35,6 +35,23 @@ const staticMatch=clinicalHTML.match(/src=["']([^"']+\.js\?v=[a-z0-9]+)["']/);as
 let assetResponse=await call(assetPath,'GET',undefined,doctor);assert.equal(assetResponse.status,200);assert.match(assetResponse.headers.get('Cache-Control'),/private, max-age=86400/);assert(assetResponse.headers.get('Vary').split(',').map(x=>x.trim()).includes('Cookie'));
 assetResponse=await call(assetURL.pathname+'?v=stale','GET',undefined,doctor);assert.equal(assetResponse.headers.get('Cache-Control'),'no-store');
 assert.notEqual((await call(assetPath)).status,200,'Versioned asset endpoint still checks identity');
+
+// A separate fictional patient exercises server-side draft and submitted-procedure permissions.
+const procedurePatient=await (await call('/api/patients','POST',{name:'Fictional Procedure Patient',dob:'1990-01-01'},doctor)).json();const pid=procedurePatient.id;
+let pv=(await (await call('/api/patients/'+pid,'GET',undefined,doctor)).json()).values,pr=0;
+const procedureCare=[{id:'PROC-CYCLE',type:'cycle',freshTransfer:{plan:'Fresh ET',transfer:{status:'Draft',embryoIds:['E01'],embryos:1}},embryology:{allocations:{},cryoDrafts:[{id:'D1',ids:['E02'],v:{device:'Draft straw'}}]}}];pv['hamdan-linked-care-v1']=JSON.stringify(procedureCare);
+async function saveProcedure(extra={}){const r=await call('/api/patients/'+pid,'PUT',{revision:pr,values:pv},doctor,extra);if(r.status===200)pr++;return r;}
+assert.equal((await saveProcedure()).status,200,'Draft saves require no extra approval');procedureCare[0].freshTransfer.transfer.notes='Editable draft';pv['hamdan-linked-care-v1']=JSON.stringify(procedureCare);assert.equal((await saveProcedure()).status,200);
+procedureCare[0].freshTransfer.transfer.status='Completed';procedureCare[0].freshTransfer.transfer.reviewState='Submitted';procedureCare[0].embryology.allocations.E02={kind:'Frozen',status:'Active',device:'S1'};pv['hamdan-linked-care-v1']=JSON.stringify(procedureCare);assert.equal((await saveProcedure()).status,200,'First submission is permitted');
+procedureCare[0].freshTransfer.transfer.notes='Correction';pv['hamdan-linked-care-v1']=JSON.stringify(procedureCare);assert.equal((await saveProcedure()).status,403,'Submitted ET requires server approval');
+const unlock=async(kind,passwordValue=password,who=doctor)=>call('/api/auth/procedure-unlock','POST',{patient:pid,cycleId:'PROC-CYCLE',kind,password:passwordValue},who);
+assert.equal((await unlock('et','wrong')).status,401);assert.equal((await unlock('et',password,nurse)).status,403);assert.equal((await unlock('et',password,other)).status,404);
+const proofET=await (await unlock('et')).json();assert(proofET.proof);assert.equal((await saveProcedure({'X-Clinic-Procedure-Proofs':JSON.stringify([proofET.proof+'bad'])})).status,403,'Tampered proofs rejected');assert.equal((await saveProcedure({'X-Clinic-Procedure-Proofs':JSON.stringify([proofET.proof])})).status,200);
+procedureCare[0].embryology.allocations.E02.device='S2';pv['hamdan-linked-care-v1']=JSON.stringify(procedureCare);assert.equal((await saveProcedure({'X-Clinic-Procedure-Proofs':JSON.stringify([proofET.proof])})).status,403,'ET approval cannot unlock cryo');
+const proofCryo=await (await unlock('cryo')).json();assert.equal((await saveProcedure({'X-Clinic-Procedure-Proofs':JSON.stringify([proofCryo.proof])})).status,200);
+procedureCare[0].embryology.allocations.E01={kind:'Frozen',status:'Active',device:'BAD'};pv['hamdan-linked-care-v1']=JSON.stringify(procedureCare);assert.equal((await saveProcedure({'X-Clinic-Procedure-Proofs':JSON.stringify([proofCryo.proof,proofET.proof])})).status,400,'Even approved edits cannot freeze a transferred embryo');delete procedureCare[0].embryology.allocations.E01;
+const savedCare=pv['hamdan-linked-care-v1'];pv['hamdan-linked-care-v1']='[]';assert.equal((await saveProcedure()).status,403,'Deleting a submitted cycle also requires approval');pv['hamdan-linked-care-v1']=savedCare;
+console.log('PASS procedure drafts, first submission, password verification, locked ET/cryo edits, scoped and tamper-resistant proofs, protected deletion and server-side embryo exclusivity.');
 assert.equal((await call('/api/auth/logout','POST',{},doctor)).status,303);assert.equal((await call('/api/patients','GET',undefined,doctor)).status,401);
 console.log('PASS: independent login, spoof rejection, secure cookie, persistent saving, conflict protection, tenant isolation, restricted roles, CSRF rejection, encrypted backup, wrong-password rejection, restore plus binary attachment round-trip, nonempty restore refusal, offline export, clinical page and logout.');
 }finally{await mf.dispose();await target.dispose();}
