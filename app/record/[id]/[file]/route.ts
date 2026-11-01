@@ -7,7 +7,7 @@ export async function GET(req:Request,{params}:any){const {id,file}=await params
 if(['index.html','husband.html','anc.html','oi.html','oi-simple.html','ivf-stage.html','encounter.html','care.html','lab.html'].includes(file))html+='<link rel="stylesheet" href="patient-file-face.css"><script src="patient-file-face.js"></script><link rel="stylesheet" href="compact-clinical.css"><script src="compact-clinical.js"></script><script src="post-opu-followup.js"></script><link rel="stylesheet" href="mobile-clinic-navigation.css"><script src="mobile-clinic-navigation.js"></script>';
 if(['oi.html','ivf-stage.html'].includes(file))html+='<script src="procedure-review.js"></script><script src="cycle-delete-core.js"></script><script src="cycle-controls.js"></script>';
 if(file==='index.html')html+='<script src="patient-file-actions.js"></script><script src="patient-cryo-summary.js"></script>';
-if(file==='oi.html')html+='<script src="cycle-outcome-view.js"></script>';
+if(file==='oi.html')html+='<script src="cycle-outcome-view.js"></script><script src="chart-selection-core.js"></script><script src="chart-selection.js"></script>';
 if(['oi.html','ivf-stage.html'].includes(file))html+='<script src="transfer-outcome-core.js"></script><script src="transfer-outcome-ui.js"></script>';
 // Keep all original links and pathways within the selected couple file.
 html=html.replace(/(["'])\/(index|husband|encounter|care|lab|anc)\.html/g,(_,quote,name)=>quote+'/record/'+id+'/'+name+'.html');html=html.replace(/href="\/"/g,'href="/record/'+id+'/index.html"');html=html.replace(/(["'])\/(request-ui|important-flags)\.js/g,(_,quote,name)=>quote+'/record/'+id+'/'+name+'.js');
