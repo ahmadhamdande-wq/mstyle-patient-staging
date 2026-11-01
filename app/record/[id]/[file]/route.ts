@@ -16,6 +16,7 @@ if(['oi.html','ivf-stage.html'].includes(file))html+='<script src="transfer-outc
 if(['index.html','husband.html','anc.html','oi.html','oi-simple.html','ivf-stage.html','encounter.html','care.html','lab.html'].includes(file))html+='<link rel="stylesheet" href="clinic-label-style.css"><script src="clinic-label-style.js"></script>';
 if(file==='encounter.html')html+='<script src="prescription-save-ui.js"></script>';
 if(['index.html','husband.html','anc.html','oi.html','oi-simple.html','ivf-stage.html','encounter.html','care.html','lab.html'].includes(file))html+='<link rel="stylesheet" href="clinical-shortcuts.css"><script src="clinical-shortcuts.js"></script>';
+if(file==='anc.html')html+='<link rel="stylesheet" href="anc-space-layout.css"><script src="anc-space-layout.js"></script>';
 // Keep all original links and pathways within the selected couple file.
 html=html.replace(/(["'])\/(index|husband|encounter|care|lab|anc)\.html/g,(_,quote,name)=>quote+'/record/'+id+'/'+name+'.html');html=html.replace(/href="\/"/g,'href="/record/'+id+'/index.html"');html=html.replace(/(["'])\/(request-ui|important-flags)\.js/g,(_,quote,name)=>quote+'/record/'+id+'/'+name+'.js');
 html=versionAssetLinks(html,assets);html=html.replace(/<script(?:\s|>)/,m=>bridge(id,values,r.revision)+m);return new Response(html,{headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});
