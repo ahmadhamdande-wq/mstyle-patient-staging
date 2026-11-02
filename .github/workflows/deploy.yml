@@ -29,6 +29,7 @@ jobs:
       - run: node tests/post-opu-followup.mjs
       - run: pnpm test:independent
       - run: node tests/users-access.mjs
+      - run: node tests/history-visit-design.mjs
   deploy:
     needs: verify
     runs-on: ubuntu-latest
