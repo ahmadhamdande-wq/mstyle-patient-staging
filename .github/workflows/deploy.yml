@@ -28,6 +28,7 @@ jobs:
       - run: node tests/transfer-outcomes.mjs
       - run: node tests/post-opu-followup.mjs
       - run: pnpm test:independent
+      - run: node tests/users-access.mjs
   deploy:
     needs: verify
     runs-on: ubuntu-latest
@@ -59,3 +60,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: b3a28b3e18d5236d09a9dc4f87da8a27
+

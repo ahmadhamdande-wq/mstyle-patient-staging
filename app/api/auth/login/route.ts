@@ -10,7 +10,9 @@ export async function POST(req:Request){
  const staff=await db.prepare('SELECT * FROM clinic_staff WHERE username=? AND active=1').bind(username).first<any>();
  const computed=await passwordHash(b.password,staff?.salt||'00000000000000000000000000000000');
  if(!staff||!equal(computed,staff.password_hash))return Response.json({error:'Incorrect username or password'},{status:401});
- const raw=token();await db.prepare('DELETE FROM clinic_sessions WHERE expires<?').bind(now).run();await db.prepare('INSERT INTO clinic_sessions(token_hash,staff_id,expires) VALUES(?,?,?)').bind(await digest(raw),staff.id,now+SESSION_SECONDS*1000).run();
+ const raw=token();await db.prepare('DELETE FROM clinic_sessions WHERE expires<?').bind(now).run();const inserted=await db.prepare('INSERT INTO clinic_sessions(token_hash,staff_id,expires,auth_version) SELECT ?,id,?,auth_version FROM clinic_staff WHERE id=? AND active=1 AND password_hash=?').bind(await digest(raw),now+SESSION_SECONDS*1000,staff.id,staff.password_hash).run();
+ if(!inserted.meta.changes)return Response.json({error:'Account changed. Sign in again.'},{status:409});
  await db.prepare('INSERT INTO clinic_audit VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),staff.id,staff.owner,'login',new Date().toISOString()).run();
- return Response.json({ok:true},{headers:{'Set-Cookie':`__Host-mstyle=${raw}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_SECONDS}`,'Cache-Control':'no-store'}});
+ return Response.json({ok:true,mustChangePassword:!!staff.must_change_password},{headers:{'Set-Cookie':`__Host-mstyle=${raw}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_SECONDS}`,'Cache-Control':'no-store'}});
 }
+

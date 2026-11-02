@@ -24,4 +24,5 @@ export function assertProcedureIntegrity(before:Record<string,string>,after:Reco
 const enc=new TextEncoder();async function signature(payload:string,key:string){const k=await crypto.subtle.importKey('raw',enc.encode(key),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(new Uint8Array(await crypto.subtle.sign('HMAC',k,enc.encode(payload))));}
 export async function procedureProof(key:string,data:any){const payload=btoa(JSON.stringify(data));return payload+'.'+await signature(payload,key);}
 export async function verifyProcedureProof(proof:string,key:string,expected:any){try{const [payload,sig,...rest]=proof.split('.');if(rest.length||!equal(sig||'',await signature(payload,key)))return false;const d=JSON.parse(atob(payload));return d.exp>Date.now()&&d.exp<=Date.now()+601000&&Object.entries(expected).every(([k,v])=>d[k]===v);}catch{return false;}}
-export async function procedureApprover(db:D1Database,staff:any){if(staff.role==='admin')return true;if(staff.role!=='doctor')return false;const owner=await db.prepare("SELECT id FROM clinic_staff WHERE owner=? AND role='doctor' AND active=1 ORDER BY created,id LIMIT 1").bind(staff.owner).first<any>();return owner?.id===staff.id;}
+export async function procedureApprover(db:D1Database,staff:any){return staff.role==='admin'||staff.is_owner===1;}
+
