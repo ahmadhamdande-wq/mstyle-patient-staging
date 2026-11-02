@@ -1,6 +1,6 @@
 # Patient history and first-visit layout
 
-The patient file retains the original chief complaint first, all history editors, past tests, HSG, laparoscopy reports/attachments, hysteroscopy and genetics. Desktop history columns have equal widths; phones use one column. The mobile header remains sticky.
+The patient file retains the original chief complaint first, all history editors, past tests, HSG, laparoscopy reports/attachments, hysteroscopy and genetics. Submitted history balances the visible cards across two equal desktop columns, so a file with findings only in general, menstrual and obstetric history does not leave its right half empty. Cards remain intact and readable; phones use one column. The full-width quick-action strip uses three buttons per row in two rows. The mobile header remains sticky.
 
 **Submit history** saves through the existing patient-file and online-save path. It displays recorded findings and hides empty/non-applicable history groups. It does not create or update an encounter. **Edit history** restores every original history section and its editing controls. **Past tests & reports** reveals the past-investigation sections, including laparoscopy and its attachment controls.
 
