@@ -30,6 +30,7 @@ jobs:
       - run: pnpm test:independent
       - run: node tests/users-access.mjs
       - run: node tests/history-visit-design.mjs
+      - run: node tests/clinic-startup.mjs
   deploy:
     needs: verify
     runs-on: ubuntu-latest

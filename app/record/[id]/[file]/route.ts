@@ -1,3 +1,4 @@
+import {withClinicStartup} from '../../../../lib/clinic-startup';
 import {historyVisitAssets} from '../../../../lib/history-visit-design';
 import {clinicalAccess} from '../../../../lib/access-policy';
 import {ancScanMethodAssets} from '../../../../lib/anc-scan-method';
@@ -23,6 +24,6 @@ if(['index.html','anc.html'].includes(file))html+='<link rel="stylesheet" href="
 // Keep all original links and pathways within the selected couple file.
 html=html.replace(/(["'])\/(index|husband|encounter|care|lab|anc)\.html/g,(_,quote,name)=>quote+'/record/'+id+'/'+name+'.html');html=html.replace(/href="\/"/g,'href="/record/'+id+'/index.html"');html=html.replace(/(["'])\/(request-ui|important-flags)\.js/g,(_,quote,name)=>quote+'/record/'+id+'/'+name+'.js');
 if(clinicalAccess(u)==='read')html=html.replace(/<body([^>]*)>/i,'<body$1><div role="status" style="padding:10px 18px;background:#fff6df;color:#694d0d;border-bottom:1px solid #e7cf96;font:14px system-ui">View-only clinical access. Changes cannot be saved. <a href="/">Return to patient list</a></div>');
-html=versionAssetLinks(html,assets);html=html.replace(/<script(?:\s|>)/,m=>bridge(id,values,r.revision)+m);return new Response(html,{headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});
+html=withClinicStartup(html,file,assets);html=versionAssetLinks(html,assets);html=html.replace(/<script(?:\s|>)/,m=>bridge(id,values,r.revision)+m);return new Response(html,{headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});
 }catch(e){console.error('Patient page unavailable',e);return new Response('Online record unavailable. Keep any editing window open and return to the patient list to retry.',{status:503,headers:{'Cache-Control':'no-store'}});}}
 
