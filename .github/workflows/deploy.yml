@@ -22,6 +22,7 @@ jobs:
       - run: pnpm build
       - run: node tests/patient-file-face.mjs
       - run: node tests/ivf-treatment.mjs
+      - run: node tests/oi-daily-chart.mjs
       - run: node tests/ivf-cycle-delete.mjs
       - run: node tests/embryology-ui.mjs
       - run: node tests/cryo-availability.mjs
