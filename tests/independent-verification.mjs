@@ -35,6 +35,8 @@ const staticMatch=clinicalHTML.match(/src=["']([^"']+\.js\?v=[a-z0-9]+)["']/);as
 let assetResponse=await call(assetPath,'GET',undefined,doctor);assert.equal(assetResponse.status,200);assert.match(assetResponse.headers.get('Cache-Control'),/private, max-age=86400/);assert(assetResponse.headers.get('Vary').split(',').map(x=>x.trim()).includes('Cookie'));
 assetResponse=await call(assetURL.pathname+'?v=stale','GET',undefined,doctor);assert.equal(assetResponse.headers.get('Cache-Control'),'no-store');
 assert.notEqual((await call(assetPath)).status,200,'Versioned asset endpoint still checks identity');
+assert.equal((await call(assetPath,'GET',undefined,other)).status,404,'Static assets retain patient ownership checks');
+assert.equal((await call(assetPath,'GET',undefined,reception)).status,403,'Reception cannot bypass clinical access through static files');
 
 // A separate fictional patient exercises server-side draft and submitted-procedure permissions.
 const procedurePatient=await (await call('/api/patients','POST',{name:'Fictional Procedure Patient',dob:'1990-01-01'},doctor)).json();const pid=procedurePatient.id;
