@@ -23,7 +23,7 @@ try{
  const h=await hash(password);
  for(const [id,owner,username,role]of [['owner','mstyle-hamdan','dr.ahmad','doctor'],['other','other-clinic','other','doctor'],['existing','mstyle-hamdan','existing.doctor','doctor']])await db.prepare('INSERT INTO clinic_staff(id,owner,username,password_hash,salt,role,active,created) VALUES(?,?,?,?,?,?,1,?)').bind(id,owner,username,h,salt,role,'2026-01-01').run();
  await db.prepare('INSERT INTO patients VALUES(?,?,?,?,?,?,?,?)').bind('fictional-preserved','mstyle-hamdan','Fictional pre-migration patient','1990-01-01','','{}',0,'2026-01-01').run();
- await migrate('0002_users_access.sql');
+ await migrate('0002_users_access.sql');await migrate('0003_lab_panels.sql');
  assert.equal((await db.prepare('SELECT password_hash FROM clinic_staff WHERE id=?').bind('owner').first()).password_hash,h,'Migration preserves owner password');
  assert.equal((await db.prepare('SELECT is_owner FROM clinic_staff WHERE id=?').bind('owner').first()).is_owner,1);
  assert.equal((await db.prepare('SELECT is_owner FROM clinic_staff WHERE id=?').bind('existing').first()).is_owner,0,'Only original owner elevated');
@@ -88,3 +88,4 @@ try{
  await clearLimits();for(let i=0;i<10;i++)await call('/api/auth/recover','POST',{username:'dr.ahmad',code:'wrong',password:recovered});await expect(await call('/api/auth/recover','POST',{username:'dr.ahmad',code:codes[1],password:recovered}),429);
  console.log('PASS Users & Access: additive migration, owner protection, reauthentication, tenant isolation, CSRF, role enforcement, first-login change, clinical/export permissions, registration privacy, session revocation, deactivation, code rotation, one-time owner recovery and throttling. Fictional data only.');
 }finally{await mf.dispose();}
+

@@ -14,9 +14,11 @@ export async function PATCH(req:Request,{params}:any){
  }else if(b.action==='sign-out'){
  ops.push(db.prepare('UPDATE clinic_staff SET auth_version=auth_version+1 WHERE id=? AND owner=?').bind(id,u.userId));
  }else if(b.action==='update'){
- if(!['doctor','nurse','reception',...(u.isOwner?['admin']:[])].includes(b.role)||typeof b.active!=='boolean'||typeof b.displayName!=='string'||!b.displayName.trim()||b.displayName.length>150)return json({error:'Enter a name, role and account status.'},400);
- const access=b.role==='reception'?'none':b.role==='admin'?'write':b.clinicalAccess;if(!['none','read','write'].includes(access))return json({error:'Choose clinical access.'},400);
- ops.push(db.prepare('UPDATE clinic_staff SET display_name=?,role=?,active=?,clinical_access=?,can_export=?,auth_version=auth_version+1 WHERE id=? AND owner=?').bind(b.displayName.trim(),b.role,b.active?1:0,access,b.canExport===true&&access!=='none'?1:0,id,u.userId));
+ if(!['doctor','nurse','reception','hormone_lab','embryology_lab',...(u.isOwner?['admin']:[])].includes(b.role)||typeof b.active!=='boolean'||typeof b.displayName!=='string'||!b.displayName.trim()||b.displayName.length>150)return json({error:'Enter a name, role and account status.'},400);
+ const department=b.role==='hormone_lab'?'hormonal':b.role==='embryology_lab'?'embryology':'';
+ const access=department?'none':b.role==='reception'?'none':b.role==='admin'?'write':b.clinicalAccess;if(!['none','read','write'].includes(access))return json({error:'Choose clinical access.'},400);
+ ops.push(db.prepare('UPDATE clinic_staff SET display_name=?,role=?,active=?,clinical_access=?,can_export=?,lab_department=?,auth_version=auth_version+1 WHERE id=? AND owner=?').bind(b.displayName.trim(),department?'nurse':b.role,b.active?1:0,access,b.canExport===true&&access!=='none'?1:0,department,id,u.userId));
  }else return json({error:'Unknown action.'},400);
  ops.push(db.prepare('DELETE FROM clinic_sessions WHERE staff_id=?').bind(id),audit(db,u.staffId,u.userId,'staff-'+b.action+':'+id));await db.batch(ops);return json({ok:true});
 }
+
