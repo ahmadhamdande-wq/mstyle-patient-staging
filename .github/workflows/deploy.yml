@@ -36,6 +36,7 @@ jobs:
       - run: node tests/lab-panels.mjs
       - run: node tests/clinic-workflow.mjs
       - run: node tests/husband-file-reentry.mjs
+      - run: node tests/hormonal-tasks.mjs
   deploy:
     needs: verify
     runs-on: ubuntu-latest

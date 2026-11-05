@@ -45,3 +45,11 @@ Deploy through the repository's existing **Deploy MStyle to your Cloudflare acco
 ## Verification
 
 `npm run typecheck`, `npm run build`, `node tests/clinic-workflow.mjs`, `node tests/lab-panels.mjs`, plus the existing IVF, embryology, history, security, loading and independent application regression checks. Integration fixtures use fictional records and isolated local D1/R2 only. Actual external email delivery requires configuration and a controlled owner test after deployment.
+
+## Hormonal task lists and native IVF next-visit requests
+
+The hormonal panel separates Today, Upcoming, Overdue, Submitted and Other history (cancelled/undated). Request date, scheduled visit date/time and actual result date/time are separate. Existing pending requests remain on their original date; completed and cancelled records are retained. Legacy completed results without submission metadata are labelled as previous entries rather than inventing a submission timestamp.
+
+When a doctor saves the native IVF chart's next-visit date and E2/P4/LH/FSH selections, the scoped save creates a distinct planned follow-up encounter and its internal lab tasks. A 3 November request for a 5 November visit keeps 3 November as the request date, schedules the laboratory for 5 November, and synchronizes submitted results only to that 5 November encounter. Re-saving cannot duplicate the planned encounter or orders. Saving by a nurse does not approve the date. An already approved appointment must be cancelled explicitly before changing its date; additional tests can be requested against the saved future encounter. Reception confirms its time.
+
+Save draft keeps results editable and out of the chart. Submit requires the matching saved draft, one encounter and a shared actual result date/time, with the actual result date no earlier than the scheduled visit. Future tasks cannot be submitted early. Submission is persistently shown with a check mark, staff name and timestamp. Submitted results can be deliberately corrected using Edit submitted results, Save draft and Submit, retaining the correction history. Server-generated linked visits/results request a reopen through a visible button in the shared header. Scheduling never records attendance or an actual laboratory result.

@@ -5,7 +5,7 @@ export const hormoneCatalogue = [
  ['Free T3','FT3','pg/mL','2.02–5.43',''],['Free T4','FT4','ng/dL','0.25–1.71',''],['TSH','TSH','mIU/L','0.38–4.31',''],
  ['Testosterone','Testosterone','ng/dL','9.0–56.0',''],['β-hCG','β-hCG','mIU/mL','0.1–10000',''],['AMH','AMH','ng/mL','0.01–9.0','']
 ].map(([name,label,unit,range,chart])=>({name,label,unit,range,chart}));
-export function hormone(name:string){return hormoneCatalogue.find(t=>[t.name,t.label].includes(name));}
+export function hormone(name:string){if(name==='P4')name='Progesterone (P4)';return hormoneCatalogue.find(t=>[t.name,t.label].includes(name));}
 export const V='hamdan-couple-encounters-v1',C='hamdan-linked-care-v1',A='clinic-appointments-v1';
 const list=(v:any)=>Array.isArray(v)?v:[];
 export const validDate=(v:any)=>typeof v==='string'&&/^20\d\d-\d\d-\d\d$/.test(v)&&!isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
@@ -32,8 +32,8 @@ export function workflow(snapshot:string,b:any,actor:{staffId:string;name:string
  if(b.action==='request-tests'&&(!validDate(b.date)||!validTime(b.time)))throw Error('Enter the shared request date and time.');
  if(!Array.isArray(b.tests)||b.tests.length>30||b.tests.some((n:any)=>typeof n!=='string'||!hormone(n)))throw Error('Select tests from the internal laboratory catalogue.');
  if(!b.tests.length&&b.action==='request-tests')throw Error('Select at least one test.');
- const names=[...new Set<string>(b.tests)],requestAt=b.action==='next-visit'?b.date:b.date+'T'+b.time;
- for(const name of names){if(list(v.orders).some((o:any)=>o.name===name&&o.status!=='Cancelled'&&o.requestedAt===requestAt))continue;const t=hormone(name)!;v.orders=list(v.orders);v.orders.push({id:'LAB-'+crypto.randomUUID(),name,category:'hormonal',status:'Pending',units:t.unit,range:v.person==='husband'?'':t.range,requestedAt:requestAt,requestedBy:actor.name,requestedStaffId:actor.staffId,internalLab:true,cycleId:cycle?.id||v.careLinks?.cycle||'',monitorDate:v.fields?.visitDate||b.date,labDispatch:{status:'Requested',department:'hormonal',scheduledAt:requestAt}});}
+ const names=[...new Set<string>(b.tests.map((n:string)=>hormone(n)!.name))],sourceVisit=visits.find((x:any)=>x.id===b.visitId),requestAt=b.action==='next-visit'?sourceVisit?.fields?.visitDate||b.date:b.date+'T'+b.time,scheduledAt=b.action==='next-visit'?b.date:v.fields?.visitDate===b.date?requestAt:v.fields?.visitDate||b.date;
+ for(const name of names){if(list(v.orders).some((o:any)=>o.name===name&&o.status!=='Cancelled'&&o.requestedAt===requestAt))continue;const t=hormone(name)!;v.orders=list(v.orders);v.orders.push({id:'LAB-'+crypto.randomUUID(),name,category:'hormonal',status:'Pending',units:t.unit,range:v.person==='husband'?'':t.range,requestedAt:requestAt,requestedRecordedAt:now,requestVisitId:b.visitId,targetVisitId:v.id,requestedBy:actor.name,requestedStaffId:actor.staffId,internalLab:true,cycleId:cycle?.id||v.careLinks?.cycle||'',monitorDate:v.fields?.visitDate||b.date,labDispatch:{status:'Requested',department:'hormonal',scheduledAt}});}
  if(b.action==='next-visit'){cycle.oiAppointments[b.visitId].tests=names;const ap=s[A].json.at(-1);ap.tests=names;}
  s[V]={...s[V],json:visits};s[C]={...s[C],json:care};return JSON.stringify(s);
 }
@@ -57,4 +57,21 @@ export function confirmTime(snapshot:string,b:any,actor:any,now=new Date().toISO
  ap.time=source.time=b.time;ap.timeStatus=source.timeStatus='Confirmed';ap.timeConfirmedAt=source.timeConfirmedAt=now;ap.timeConfirmedBy=actor.name;
  for(const v of list(s[V]?.json))if(v.id===ap.encounterId)for(const o of list(v.orders))if(o.internalLab&&o.status==='Pending')o.labDispatch={...o.labDispatch,scheduledAt:ap.date+'T'+b.time};
  const notices=list(s['clinic-portal-alerts-v1']?.json);notices.push({id:crypto.randomUUID(),kind:'Appointment confirmed',date:ap.date,time:b.time,at:now});s['clinic-portal-alerts-v1']={json:notices.slice(-100)};s[A]={json:appointments};s[C]={...s[C],json:care};return JSON.stringify(s);
+}
+
+// Called only during a scoped clinical save; reading the queue never creates or moves orders.
+export function materializeMonitoringRequests(s:any,previous:any,actor:any,now=new Date().toISOString()){
+ const doctor=actor.isOwner||['doctor','admin'].includes(actor.role);const sources=(s[C]?.json||[]).filter((c:any)=>c.type==='cycle'&&!c.archived).flatMap((c:any)=>Object.entries(c.oiAppointments||{}).map(([id,a]:any)=>({cycleId:c.id,id,marker:a.labTaskRequestedAt})));
+ const normalized=(a:any)=>JSON.stringify([a?.date||'',(a?.tests||[]).map((n:string)=>hormone(n)?.name||n).sort(),!!a?.folliculometry]);
+ for(const entry of sources){const cycle=(s[C]?.json||[]).find((c:any)=>c.id===entry.cycleId),ap=cycle.oiAppointments[entry.id],old=(previous[C]?.json||[]).find((c:any)=>c.id===entry.cycleId)?.oiAppointments?.[entry.id];
+  if(old?.approvedAt&&!old.cancelledAt){if(normalized(ap)!==normalized(old))throw Error('The next visit is already approved. Use Internal lab / next visit to add tests to its saved encounter, or cancel the future appointment before changing its date.');for(const key of ['approvedAt','approvedBy','approvedStaffId','encounterId','time','timeStatus','timeConfirmedAt','timeConfirmedBy'])if(old[key]!=null)ap[key]=old[key];continue;}
+  if(!doctor||!entry.marker||entry.marker===old?.labTaskRequestedAt||!ap.date||ap.cancelledAt)continue;
+  const source=(s[V]?.json||[]).find((v:any)=>v.id===entry.id&&v.careLinks?.cycle===cycle.id);if(!source||!validDate(ap.date)||ap.date<=source.fields?.visitDate)throw Error('The next visit must follow the source monitoring visit.');
+  if(Object.values(cycle.oiVisits||{}).some((v:any)=>v.monitorDate===ap.date))throw Error('The selected next visit already has monitoring findings. Open that encounter to request its tests.');
+  const tests=(ap.tests||[]).map((n:string)=>hormone(n)?.name).filter(Boolean);if(tests.length!==(ap.tests||[]).length)throw Error('Select the next-visit hormones from the saved catalogue.');
+  const updated=JSON.parse(workflow(JSON.stringify(s),{action:'next-visit',cycleId:cycle.id,visitId:entry.id,date:ap.date,tests},{staffId:actor.staffId,name:actor.displayName},now));
+  const approved=updated[C].json.find((c:any)=>c.id===cycle.id).oiAppointments[entry.id];approved.folliculometry=!!ap.folliculometry;
+  Object.assign(s,updated);
+ }
+ return s;
 }
