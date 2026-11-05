@@ -7,10 +7,10 @@ export default function PortalAccess(){
  const [message,setMessage]=useState('');
  const [busy,setBusy]=useState(false);
  useEffect(()=>{setPatientId(new URLSearchParams(window.location.search).get('patientId')||'');},[]);
- useEffect(()=>{if(!patientId)return;fetch('/api/portal/enrollment?patientId='+encodeURIComponent(patientId),{cache:'no-store'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to load');setDetails(d);}).catch(e=>setMessage(e.message));},[patientId]);
+ useEffect(()=>{if(!patientId)return;fetch('/api/portal/enrollment?patientId='+encodeURIComponent(patientId),{cache:'no-store'}).then(async r=>{const d:any=await r.json();if(!r.ok)throw Error(d.error||'Unable to load');setDetails(d);}).catch(e=>setMessage(e.message));},[patientId]);
  async function invite(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage('');try{
   const r=await fetch('/api/portal/enrollment?patientId='+encodeURIComponent(patientId),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({administratorPassword:password})});
-  const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to send invitation');setMessage(d.message);setPassword('');
+  const d:any=await r.json();if(!r.ok)throw Error(d.error||'Unable to send invitation');setMessage(d.message);setPassword('');
  }catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  return <main style={{maxWidth:650,margin:'48px auto',padding:24,fontFamily:'system-ui'}}>
  <a href="/">← Patient list</a><h1>Patient Portal Access</h1>
