@@ -34,6 +34,7 @@ export function installRecordEditing(initialValues:Record<string,string>, initia
  document.addEventListener('click',e=>{
   const button=(e.target as Element)?.closest('button');if(!button||button.closest('#mstyleConsultationDialog')||button.closest('#cloud-bar')||button.closest('#clinicSearch')||button.closest('#clinicAppointments')||button.closest('.medication-catalog-settings')||button.closest('.ivf-cycle-history')||button.closest('.ivf-history-confirm')||button.closest('#nsAIImport')||button.closest('#newStyleTreatment'))return;
   const text=(button.textContent||'').trim(),action=button.getAttribute('onclick')||'';
+  if(/^Edit requests$/i.test(text)){const root=button.closest('#orders');if(root)unlockSection(root);return;}
   if(/\bedit\b/i.test(text)||/^Describe\b/i.test(text)){const box=button.closest('.anc-two-box-card');if(box){unlockSection(box);return;}unlock();return;}
   const templateAction=/ClinicPrescriptions\.(?:newTemplate|saveTemplate(?:Edits)?|deleteTemplate|appendPreviewRow|removeTemplateRow)\(/.test(action);
   if(locked&&!Array.from(sectionRoots).some(root=>root.contains(button))&&!templateAction&&(/remove important flag/i.test(button.getAttribute('aria-label')||'')||/^(?:\+?\s*Add|Remove|Delete|Approve|Finalize|Send)\b/i.test(text)||/^save|^apply/i.test(text))){e.preventDefault();e.stopImmediatePropagation();message.textContent='Choose Edit before changing saved data.';edit.focus();return;}
@@ -41,5 +42,7 @@ export function installRecordEditing(initialValues:Record<string,string>, initia
  },true);
  for(const id of ['historyPicker','episodePicker'])document.getElementById(id)?.addEventListener('change',()=>{locked=true;pendingLock=false;update();});
  new MutationObserver(()=>{if(locked)update();}).observe(document.body,{childList:true,subtree:true});
+ const orders=document.getElementById('orders');if(orders){const b=document.createElement('button');b.type='button';b.textContent='Edit requests';orders.insertBefore(b,orders.firstChild);}
  update();return controller;
 }
+

@@ -2,7 +2,7 @@ import {getChatGPTUser} from '../../chatgpt-auth';
 import {database} from '../../../db/raw';
 import {managesUsers} from '../../../lib/access-policy';
 import {json,sameOrigin,publicStaff,administrator,passwordError,passwordValues,audit} from '../../../lib/account-security';
-export async function GET(){const u=await getChatGPTUser();if(!u)return json({error:'Sign in required.'},401);if(!managesUsers(u))return json({error:'Administrator access required.'},403);const rows=await database().prepare('SELECT id,username,display_name,role,active,is_owner,clinical_access,can_export,must_change_password,lab_department,created FROM clinic_staff WHERE owner=? ORDER BY is_owner DESC,created,id').bind(u.userId).all();return json({users:rows.results.map(publicStaff),currentId:u.staffId,isOwner:!!u.isOwner});}
+export async function GET(){const u=await getChatGPTUser();if(!u)return json({error:'Sign in required.'},401);if(!managesUsers(u))return json({error:'Administrator access required.'},403);const rows=await database().prepare('SELECT id,username,display_name,role,active,is_owner,clinical_access,can_export,must_change_password,lab_department,recovery_email,created FROM clinic_staff WHERE owner=? ORDER BY is_owner DESC,created,id').bind(u.userId).all();return json({users:rows.results.map((r:any)=>({...publicStaff(r),recoveryEmail:u.isOwner?r.recovery_email||'':''})),currentId:u.staffId,isOwner:!!u.isOwner});}
 export async function POST(req:Request){
  if(!sameOrigin(req))return json({error:'Invalid origin.'},403);const u=await getChatGPTUser();if(!u)return json({error:'Sign in required.'},401);
  const b:any=await req.json().catch(()=>null),db=database();const denied=await administrator(db,u,req,b);if(denied)return denied;
@@ -19,4 +19,3 @@ export async function POST(req:Request){
  try{await db.batch([db.prepare('INSERT INTO clinic_staff(id,owner,username,password_hash,salt,role,active,created,display_name,clinical_access,can_export,must_change_password,lab_department) VALUES(?,?,?,?,?,?,1,?,?,?,?,1,?)').bind(id,u.userId,username,hash,salt,department?'nurse':b.role,new Date().toISOString(),b.displayName.trim(),access,b.canExport===true&&access!=='none'?1:0,department),audit(db,u.staffId,u.userId,'staff-created:'+id)]);}catch{return json({error:'Could not create the account. Refresh the list before retrying.'},409);}
  return json({ok:true,id},201);
 }
-

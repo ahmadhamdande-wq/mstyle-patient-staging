@@ -27,7 +27,8 @@ export function accessDecision(u:AccessUser,path:string,method:string):boolean {
  if(path.startsWith('/api/staff')||path==='/settings/users')return managesUsers(u);
  if(path==='/lab'||path==='/api/lab'||/^\/api\/lab\/[a-f0-9-]{36}$/.test(path))return !!labDepartment(u)||(read?clinicalAccess(u)!=='none':clinicalAccess(u)==='write');
  if(labDepartment(u))return path==='/'&&read;
- if(path==='/'||path==='/appointments'||path==='/api/appointments')return read;
+ if(path==='/api/appointments')return read||method==='POST'&&(u.role==='reception'||clinicalAccess(u)==='write');
+ if(path==='/'||path==='/appointments')return read;
  if(path==='/api/patients')return read||method==='POST'&&(u.role==='reception'||clinicalAccess(u)==='write');
  if(path==='/api/backup')return exportsRecords(u)&&['GET','HEAD','POST'].includes(method);
  if(path==='/backups'||path.startsWith('/api/backup')||path==='/api/restore'||/^\/api\/patients\/[^/]+\/summary$/.test(path))return exportsRecords(u)&& (read||clinicalAccess(u)==='write');
@@ -35,4 +36,3 @@ export function accessDecision(u:AccessUser,path:string,method:string):boolean {
  if(path==='/api/auth/procedure-unlock')return managesUsers(u)||!!u.isOwner;
  return read||clinicalAccess(u)==='write';
 }
-

@@ -48,7 +48,7 @@ try{
  let h=await body(await call(hbase,'GET',undefined,hormone));assert.equal(h.requests.length,3);assert(!JSON.stringify(h).includes('SECRET'));assert(!('cycles'in h));
  let e=await body(await call(ebase,'GET',undefined,embryo));assert(!JSON.stringify(e).includes('SECRET'));assert(!('requests'in e));assert.equal(e.cycles.length,1);
  await expect(await call(hbase,'POST',{revision:h.revision},reader),403);
- const result={result:'125',units:'pg/mL',range:'Laboratory range',resultDate:date},patches=[{visitId:'V1',orderId:'E2',values:result}];
+ const result={result:'125',units:'pg/mL',range:'Laboratory range',resultDate:date,resultTime:'10:30'},patches=[{visitId:'V1',orderId:'E2',values:result}];
  await expect(await call(hbase,'POST',{revision:0,action:'hormone-submit',patches},hormone),400);
  await expect(await call(hbase,'POST',{revision:0,action:'hormone-draft',patches},hormone,{Origin:'https://evil.example'}),403);
  await expect(await call(hbase,'POST',{revision:0,action:'hormone-draft',patches:[{visitId:'V1',orderId:'CBC',values:result}]},hormone),400);
@@ -57,6 +57,7 @@ try{
  h=await body(await call(hbase,'POST',{revision:h.revision,action:'hormone-submit',patches},hormone));assert.equal(h.requests[0].status,'Completed');assert.equal(h.requests[0].draft,null);
  let full=await body(await call('/api/patients/'+patient,'GET',undefined,owner));assert.equal(JSON.parse(full.values['hamdan-couple-encounters-v1'])[0].orders[0].result,'125');assert.equal(JSON.parse(full.values['hamdan-couple-encounters-v1'])[0].orders[2].result,'SECRET CBC');
  async function save(action,extra={},status=200){const current=await body(await call(ebase,'GET',undefined,embryo));return body(await call(ebase,'POST',{revision:current.revision,cycleId:c.id,action,...extra},embryo),status);}
+ e=await save('semen-preparation',{values:{at:date+'T09:00',source:'Ejaculate',preparation:'Swim up',sampleNumber:'1',volume:'0.7',concentration:'42',motility:'55',normalForms:'4',abnormalForms:'96',embryologist:'Fictional performing embryologist',witness:'Fictional witness',comments:'Fictional preparation'}});assert.equal(e.cycles[0].semenPreparation.embryologist,'Fictional performing embryologist');assert.equal(e.cycles[0].semenPreparation.submittedBy,'Fictional embryo');
  e=await save('icsi',{values:{at:date+'T10:00',method:'ICSI',source:'Ejaculated fresh',preparation:'Fictional prep',injected:'4',inseminated:'0',notes:'Lab only'}});assert.equal(e.cycles[0].lab.embryos.length,4);
  await save('icsi',{values:{at:date+'T10:00',method:'ICSI',source:'Ejaculated fresh',preparation:'Fictional prep',injected:'5',inseminated:'0'}},400);
  await save('culture',{day:'1',values:{at:'2026-10-11T09:00',entries:{E01:{pn:'2PN'},E02:{pn:'2PN'},E03:{pn:'0PN'},E04:{pn:'2PN'}}}});
@@ -68,8 +69,8 @@ try{
  await save('et-submit',et,400);await save('et-draft',et);e=await save('et-submit',et);assert.equal(e.cycles[0].transfer.status,'Completed');assert.equal(e.cycles[0].lab.allocations.E01.kind,'Fresh ET');
  await save('cryo-draft',{...cryo,embryoIds:['E01'],grades:{E01:'G1'}},400);
  await save('et-draft',et,400);
- await save('cryo-draft',{...cryo,values:{...cryo.values,storage:'Different location'}},200);await save('cryo-submit',{...cryo,values:{...cryo.values,storage:'Different location'}},400);
- full=await body(await call('/api/patients/'+patient,'GET',undefined,owner));const current=JSON.parse(full.values['hamdan-linked-care-v1'])[0];assert.equal(current.freshTransfer.regimens[0].drug,'SECRET MEDICINE');assert.equal(current.oiVisits.SECRET.comment,'SECRET SCAN');assert.equal(JSON.parse(full.values['SECRET-KEY']).keep,'SECRET KEY');assert.equal(JSON.parse((await db.prepare('SELECT snapshot FROM patients WHERE id=?').bind(patient).first()).snapshot).attachment.json.__attachment,'untouched');
+ await save('cryo-draft',{...cryo,values:{...cryo.values,storage:'Different location'}},400);await save('cryo-submit',{...cryo,values:{...cryo.values,storage:'Different location'}},400);
+ full=await body(await call('/api/patients/'+patient,'GET',undefined,owner));const current=JSON.parse(full.values['hamdan-linked-care-v1'])[0];assert.equal(current.freshTransfer.regimens[0].drug,'SECRET MEDICINE');assert.equal(current.oiVisits.SECRET.comment,'SECRET SCAN');assert.equal(current.embryology.allocations.E02.storage,cryo.values.storage);assert.equal(JSON.parse(full.values['SECRET-KEY']).keep,'SECRET KEY');assert.equal(JSON.parse((await db.prepare('SELECT snapshot FROM patients WHERE id=?').bind(patient).first()).snapshot).attachment.json.__attachment,'untouched');
  const beforeForeign=await db.prepare('SELECT snapshot,revision FROM patients WHERE id=?').bind(foreign).first();assert.equal(beforeForeign.snapshot,snapshot);assert.equal(beforeForeign.revision,0);
  const count=await db.prepare("SELECT COUNT(*) AS n FROM clinic_audit WHERE action LIKE 'lab-%'").first();assert(count.n>=8);
  await db.prepare('DELETE FROM clinic_login_attempts').run();await expect(await call('/api/staff/'+hID,'PATCH',{action:'update',displayName:'Fictional hormone',role:'nurse',clinicalAccess:'read',canExport:false,active:true,administratorPassword:password},owner),200);await expect(await call(hbase,'GET',undefined,hormone),401);assert.equal((await db.prepare('SELECT lab_department FROM clinic_staff WHERE id=?').bind(hID).first()).lab_department,'');

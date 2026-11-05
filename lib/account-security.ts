@@ -12,7 +12,7 @@ export async function limited(db:D1Database,req:Request,scope:string,identity:st
 export function passwordError(value:any){return typeof value!=='string'||value.length<14||value.length>256?'Use a password or passphrase of 14–256 characters.':'';}
 export async function passwordValues(password:string){const salt=token();return {salt,hash:await passwordHash(password,salt)};}
 export async function verifiesPassword(row:any,password:any){return typeof password==='string'&&password.length<=256&&equal(await passwordHash(password,row.salt),row.password_hash);}
-export function publicStaff(row:any){return {id:row.id,username:row.username,displayName:row.display_name||row.username,role:staffRole(row),active:!!row.active,isOwner:row.is_owner===1,clinicalAccess:clinicalAccess(row),canExport:!!row.can_export||row.is_owner===1||row.role==='admin',mustChangePassword:!!row.must_change_password,created:row.created};}
+export function publicStaff(row:any){return {id:row.id,username:row.username,recoveryEmail:row.recovery_email||'',displayName:row.display_name||row.username,role:staffRole(row),active:!!row.active,isOwner:row.is_owner===1,clinicalAccess:clinicalAccess(row),canExport:!!row.can_export||row.is_owner===1||row.role==='admin',mustChangePassword:!!row.must_change_password,created:row.created};}
 export function audit(db:D1Database,actor:string,owner:string,action:string){return db.prepare('INSERT INTO clinic_audit(id,staff_id,owner,action,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),actor,owner,action,new Date().toISOString());}
 export async function administrator(db:D1Database,user:any,req:Request,body:any){
  if(!managesUsers(user))return json({error:'Administrator access required.'},403);
@@ -22,4 +22,3 @@ export async function administrator(db:D1Database,user:any,req:Request,body:any)
  return null;
 }
 export function sessionCookie(raw:string){return `__Host-mstyle=${raw}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_SECONDS}`;}
-

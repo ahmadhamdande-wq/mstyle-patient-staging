@@ -33,6 +33,8 @@ jobs:
       - run: node tests/history-visit-design.mjs
       - run: node tests/clinic-startup.mjs
       - run: node tests/loading-maintenance.mjs
+      - run: node tests/lab-panels.mjs
+      - run: node tests/clinic-workflow.mjs
   deploy:
     needs: verify
     runs-on: ubuntu-latest

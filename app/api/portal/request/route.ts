@@ -1,0 +1,5 @@
+import {database} from '../../../../db/raw';
+import {portalUser} from '../../../../lib/patient-portal';
+import {json,sameOrigin,limited} from '../../../../lib/account-security';
+import {validDate} from '../../../../lib/clinic-workflow';
+export async function POST(req:Request){const db=database(),a=await portalUser(req,db);if(!a||!sameOrigin(req))return json({error:'Patient sign in required.'},403);if(await limited(db,req,'portal-appointment',a.id,8))return json({error:'Too many requests. Contact reception.'},429);const b:any=await req.json().catch(()=>null);if(!validDate(b?.date)||typeof b?.note!=='string'||b.note.length>500)return json({error:'Enter a valid date and a note of up to 500 characters.'},400);await db.prepare('INSERT INTO clinic_portal_requests(id,owner,patient_id,requested_date,note,created) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),a.owner,a.patient_id,b.date,b.note,new Date().toISOString()).run();return json({message:'Request sent to reception. The clinic must confirm the date and time.'});}
