@@ -36,7 +36,7 @@ export async function POST(req:Request){
  if(existing&&existing.email!==c.email)return json({error:'Existing portal email differs. Email changes require a separate verified workflow.'},409);
  if(!existing){
   const id=crypto.randomUUID();
-  await c.db.prepare('INSERT INTO clinic_portal_accounts(id,owner,patient_id,email,active,verified,auth_version) VALUES(?,?,?,?,1,0,1)').bind(id,c.user.userId,c.patient.id,c.email).run();
+  await c.db.prepare('INSERT INTO clinic_portal_accounts(id,owner,patient_id,email,active,verified,auth_version,created) VALUES(?,?,?,?,1,0,1,?)').bind(id,c.user.userId,c.patient.id,c.email,new Date().toISOString()).run();
  }
  const account=await c.db.prepare('SELECT * FROM clinic_portal_accounts WHERE owner=? AND patient_id=?').bind(c.user.userId,c.patient.id).first<any>();
  if(!account?.active)return json({error:'Patient portal access is disabled.'},403);
