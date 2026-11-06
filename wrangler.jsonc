@@ -1,5 +1,5 @@
 {
-  "name": "mstyle-clinic",
+  "name": "mstyle-patient-staging",
   "main": "worker.ts",
   "compatibility_date": "2026-05-15",
   "compatibility_flags": [
@@ -8,15 +8,15 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "mstyle-clinic-db",
-      "database_id": "9de4e8ca-d4bd-4d51-bf1a-a12a75573813",
+      "database_name": "mstyle-patient-staging-db",
+      "database_id": "0b1efc02-e8cf-4dd7-bf9b-89c52577ef0b",
       "migrations_dir": "drizzle"
     }
   ],
   "r2_buckets": [
     {
       "binding": "BUCKET",
-      "bucket_name": "mstyle-clinic-files"
+      "bucket_name": "mstyle-patient-staging-files"
     }
   ],
   "account_id": "b3a28b3e18d5236d09a9dc4f87da8a27"
